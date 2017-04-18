@@ -40,15 +40,19 @@ class MQTTPublishPacket: MQTTPacket {
         return self.finalPacket(variableHeader, payload: payload)
     }
     
-    init(header: MQTTPacketFixedHeader, networkData: NSData) {
+    init(header: MQTTPacketFixedHeader, networkData: NSData)
+    {
         
         var readingData = networkData
         
         var bytes = UnsafePointer<UInt8>(readingData.bytes)
-        let topicLength = 256 * Int(bytes[0]) + Int(bytes[1])
-        let topic = NSString(data: readingData.subdataWithRange(NSMakeRange(2, topicLength)), encoding: NSUTF8StringEncoding) as! String
         
-        readingData = readingData.subdataWithRange(NSMakeRange(2+topicLength, readingData.length - topicLength-2))
+        let topicLength = UInt16(bytes[0]) << 8 + UInt16(bytes[1])
+        //let topicLength = 256 * Int(bytes[0]) + Int(bytes[1])
+        
+        let topic = NSString(data: readingData.subdataWithRange(NSMakeRange(2, Int(topicLength))), encoding: NSUTF8StringEncoding) as! String
+        
+        readingData = readingData.subdataWithRange(NSMakeRange(2+Int(topicLength), readingData.length - Int(topicLength)-2))
         
         let qos = MQTTQoS(rawValue: header.flags & 0x06)!
         
